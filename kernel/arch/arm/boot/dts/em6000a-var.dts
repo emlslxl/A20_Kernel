@@ -1,0 +1,18 @@
+/dts-v1/;
+
+/ {
+	model = "EM6000A";
+	compatible = "allwinner,sun7i";
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	memory {
+		device_type = "memory";
+		reg = <0x40000000 0x1C000000>;
+	};
+
+	chosen {
+		name = "chosen";
+		bootargs = "console=ttyS0,115200n8 init=/linuxrc mtdparts=mtd-nand-sunxi.0:<mtdparts> ubi.mtd=3 root=ubi0:rootfs rw rootfstype=ubifs root2=10:/dev/blockrom2,squashfs,/run quiet lpj=5009408 splash=0x43100000,0x100000";
+	};
+};

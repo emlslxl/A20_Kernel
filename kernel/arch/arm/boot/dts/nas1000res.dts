@@ -1,0 +1,19 @@
+/dts-v1/;
+
+/ {
+	model = "NAS1000";
+	compatible = "allwinner,sun7i";
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	memory {
+		device_type = "memory";
+		reg = <0x40000000 0x40000000>;
+	};
+
+	chosen {
+		name = "chosen";
+		#bootargs = "console=ttyS0,115200n8 init=/linuxrc mtdparts=mtd-nand-sunxi.0:12288K@0x1000000(packimg),12288K(kernel),65536K(initfs),-(rootfs) ubi.mtd=3 root=ubi0:rootfs rw rootfstype=ubifs splash=0x43100000,0x100000";
+		bootargs = "console=ttyS0,115200n8 init=/linuxrc mtdparts=mtd-nand-sunxi.0:8192K@0x800000(packimg),8192K(kernel),65536K(initfs),-(rootfs) ubi.mtd=3 root=ubi0:rootfs rw rootfstype=ubifs splash=0x43100000,0x100000";
+	};
+};

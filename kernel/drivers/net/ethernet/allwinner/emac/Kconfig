@@ -1,0 +1,15 @@
+config SUNXI_EMAC
+	tristate "Sunxi platform 10/100Mbps Ethernet driver"
+	depends on HAS_IOMEM && NET_VENDOR_SUNXI
+	select MII
+	default m
+	---help---
+          Support for Allwinner sunxi Ethernet MAC chipset support.
+	  Currently known working chipsets are:
+	    * sun4i (A10)
+	    * sun5i (A10s)
+	    * sun7i (A20)
+
+          To compile this driver as a module, choose M here.  The module
+          will be called sunxi_emac.
+

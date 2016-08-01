@@ -1,0 +1,38 @@
+config BCMDHD_LEGACY
+	tristate "Broadcom 4329/30 wireless cards support v1.28"
+	depends on MMC
+	select WIRELESS_EXT
+	select WEXT_PRIV
+	default n
+	---help---
+	  This module adds support for wireless adapters based on
+	  Broadcom 4329/30 chipset.
+
+config BCMDHD_FW_PATH
+	depends on BCMDHD_LEGACY
+	string "Firmware path"
+	default "/system/vendor/modules/fw_bcmxxxx.bin"
+	---help---
+	  Path to the firmware file.
+
+config BCMDHD_NVRAM_PATH
+	depends on BCMDHD_LEGACY
+	string "NVRAM path"
+	default "/system/vendor/modules/nvram_apxxxx.txt"
+	---help---
+	  Path to the calibration file.
+
+choice
+    depends on BCMDHD_LEGACY
+    prompt "Interrupt type"
+config BCMDHD_OOB
+	depends on BCMDHD_LEGACY
+	bool "Out-of-Band Interrupt"
+	---help---
+		Interrupt through WL_HOST_WAKE.
+config BCMDHD_SDIO_IRQ
+	depends on  BCMDHD_LEGACY
+	bool "In-Band Interrupt"
+	---help---
+		Interrupt through SDIO DAT[1]
+endchoice

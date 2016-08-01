@@ -1,0 +1,18 @@
+/dts-v1/;
+
+/ {
+	model = "EM6000";
+	compatible = "allwinner,sunxi";
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	memory {
+		device_type = "memory";
+		reg = <0x40000000 0x20000000>;
+	};
+
+	chosen {
+		name = "chosen";
+		bootargs = "console=ttyS0,115200n8 rootfstype=squashfs root=/dev/blockrom7 init=/init mtdparts=mtd-nand-sunxi.0:1M,4M,3M,3M,3M,3M,8M,128M,- quiet lpj=5009408 splash=0x43100000,0x100000";
+	};
+};
