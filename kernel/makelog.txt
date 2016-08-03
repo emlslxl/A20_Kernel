@@ -1,4 +1,5 @@
   CHK     include/linux/version.h
+
   CHK     include/generated/utsrelease.h
 make[1]: “include/generated/mach-types.h”是最新的。
   CALL    scripts/checksyscalls.sh
