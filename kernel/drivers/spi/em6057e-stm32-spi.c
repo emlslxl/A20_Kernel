@@ -271,6 +271,49 @@ static int set_mcu_dout(struct mcu_data *mcu, unsigned int n, unsigned int v)
 DEFINE_MCU_DOUT(0)
 DEFINE_MCU_DOUT(1)
 
+/**********************mcu din***************************/
+	static int get_mcu_din(struct mcu_data *mcu, unsigned int n)
+{
+	int d;
+	d = em6kstm32_spi_read_word(mcu->spi, CMD_DIN);
+	if(d<0){
+		printk("%s: failed to get %d\n", __FUNCTION__, n);
+		return 0;
+	}
+
+	return (d>>n)&1;
+}
+
+#define DEFINE_MCU_DIN(n)	static ssize_t mcu_show_din##n(struct device *dev, struct device_attribute *attr, char *buf){\
+			struct mcu_data *mcu = dev_get_drvdata(dev);\
+			return sprintf(buf, "%d\n", get_mcu_din(mcu,n));\
+		}\
+	static DEVICE_ATTR(DIN##n, 0644,mcu_show_din##n, NULL);
+
+DEFINE_MCU_DIN(0)
+DEFINE_MCU_DIN(1)
+
+/**************************mcu version************************************/
+static int get_mcu_ver(struct mcu_data *mcu, unsigned int n)
+{
+	u8 d;
+	d = em6kstm32_spi_read_byte(mcu->spi, CMD_TEST1);
+	if(d<0){
+		printk("%s: failed to get %d\n", __FUNCTION__, n);
+		return 0;
+	}
+
+	return d;
+}
+
+#define DEFINE_MCU_VER(n)	static ssize_t mcu_show_ver(struct device *dev, struct device_attribute *attr, char *buf){\
+			struct mcu_data *mcu = dev_get_drvdata(dev);\
+			return sprintf(buf, "%d\n", get_mcu_ver(mcu,n));\
+		}\
+	static DEVICE_ATTR(ver, 0644,mcu_show_ver, NULL);
+
+DEFINE_MCU_VER(0)
+
 /**********************mcu analog input for PI, AI, RI***************************/
 static int get_mcu_ain(struct mcu_data *mcu, unsigned int n)
 {
@@ -299,6 +342,11 @@ static const struct attribute *mcu_attrs[] = {
 
 	&dev_attr_DOUT0.attr,
 	&dev_attr_DOUT1.attr,
+
+	&dev_attr_DIN0.attr,
+	&dev_attr_DIN1.attr,
+	
+	&dev_attr_ver.attr,
 
 	&dev_attr_power.attr,
 	&dev_attr_RI0.attr,
