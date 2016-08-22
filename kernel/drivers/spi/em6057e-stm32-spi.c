@@ -42,8 +42,8 @@
 #define CMD_DOUT			(CMD_DOUT_BASE+0)	//IO数据输出
 #define CMD_SETB_DOUT		(CMD_DOUT_BASE+1)	//IO数据位高输出，长度8bit，读取无效
 #define CMD_CLRB_DOUT		(CMD_DOUT_BASE+2)	//IO数据位低输出，长度8bit，读取无效
-
-//#define CMD_ANALOG_OUT(n)	(CMD_PWM0+(n))
+#define CMD_PWM0			(CMD_DOUT_BASE+3)
+#define CMD_ANALOG_OUT(n)	(CMD_PWM0+(n))
 
 #define CMD_SEC_BASE		0x30				//加密，保留
 #define CMD_SEC_DESCRYPT	(CMD_SEC_BASE+0)
@@ -314,6 +314,46 @@ static int get_mcu_ver(struct mcu_data *mcu, unsigned int n)
 
 DEFINE_MCU_VER(0)
 
+/**********************mcu pwm out***************************/
+static int get_mcu_aout(struct mcu_data *mcu, unsigned int n)
+{
+	int d;
+	d = em6kstm32_spi_read_word(mcu->spi, CMD_ANALOG_OUT(n));
+	if(d<0){
+		printk("%s: failed to get %d\n", __FUNCTION__, n);
+		return 0;
+	}
+
+	return d;
+}
+
+static int set_mcu_aout(struct mcu_data *mcu, unsigned int n, unsigned int v)
+{
+	int ret;
+	ret = em6kstm32_spi_write_word(mcu->spi, CMD_ANALOG_OUT(n), v);
+	if(ret<0){
+		printk("%s: failed to set %d\n", __FUNCTION__, n);
+		return ret;
+	}
+
+	return 0;
+}
+
+#define DEFINE_MCU_AOUT(n, name)	static ssize_t mcu_show_aout##n(struct device *dev, struct device_attribute *attr, char *buf){\
+			struct mcu_data *mcu = dev_get_drvdata(dev);\
+			return sprintf(buf, "%d\n", get_mcu_aout(mcu,n));\
+		}\
+	static ssize_t mcu_store_aout##n(struct device *dev, struct device_attribute *attr,\
+						      const char *buf, size_t size){\
+				struct mcu_data *mcu = dev_get_drvdata(dev);\
+				char *end;\
+				unsigned long v = simple_strtoul(buf, &end, 0);\
+				if (end == buf)			return -EINVAL;\
+			set_mcu_aout(mcu, n, v);	return size;}\
+	static DEVICE_ATTR(name, 0644,mcu_show_aout##n, mcu_store_aout##n);
+
+DEFINE_MCU_AOUT(0, buzzer)
+
 /**********************mcu analog input for PI, AI, RI***************************/
 static int get_mcu_ain(struct mcu_data *mcu, unsigned int n)
 {
@@ -347,6 +387,7 @@ static const struct attribute *mcu_attrs[] = {
 	&dev_attr_DIN1.attr,
 	
 	&dev_attr_ver.attr,
+	&dev_attr_buzzer.attr,
 
 	&dev_attr_power.attr,
 	&dev_attr_RI0.attr,
