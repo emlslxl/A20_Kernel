@@ -6,6 +6,12 @@ menu "Character devices"
 
 source "drivers/tty/Kconfig"
 
+config GPIO_EM6057_LCD_ON_OFF
+	bool "EM6057 LCD_ON_OFF"
+	default y
+	help
+	  GPIO output level high/low
+
 config DEVMEM
 	bool "Memory device driver"
 	default y
