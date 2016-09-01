@@ -44,7 +44,7 @@ static void *v_gpio_base_addr = NULL;
 #define CHARDEVICEDRIVER_MAJOR 100
 #define CHARDEVICEDRIVER_MINOR 0
 #define CHARDEVICEDRIVER_COUNT 1
-#define CHARDEVICEDRIVER_NAME "chardevicedriver"
+#define CHARDEVICEDRIVER_NAME "em6057_gpio"
 
 #define GPIO_PWM_PORT	9 //port_I -> 9
 #define GPIO_PWM_NUM	3 //PI03
@@ -183,8 +183,7 @@ void chardevicedriver_cdev_add(struct chardevicedriver_cdev *pcdevp, int index)
 	cdev_add(&(pcdevp->cdev), dev, 1);
 
 	/*创建设备节点文件/dev/xxxx*/
-	pcdevp->dev_device =device_create(dev_class, NULL, dev, NULL, 
-				 					 "chardevicedriver%d",MINOR(dev));
+	pcdevp->dev_device =device_create(dev_class, NULL, dev, NULL,"em6057_gpio"); 
 }
 
 static int __init chardevicedriver_init(void)
