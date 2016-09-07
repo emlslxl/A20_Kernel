@@ -3,6 +3,7 @@
 #
 
 obj-$(CONFIG_GPIO_EM6057)	+= em6057_gpio.o
+obj-$(CONFIG_PWM_EM6057)	+= em6057_pwm.o
 obj-y				+= mem.o random.o
 obj-$(CONFIG_TTY_PRINTK)	+= ttyprintk.o
 obj-y				+= misc.o

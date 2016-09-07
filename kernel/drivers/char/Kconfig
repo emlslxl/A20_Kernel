@@ -12,6 +12,12 @@ config GPIO_EM6057
 	help
 	  GPIO output level high/low
 
+config PWM_EM6057
+	bool "EM6057 PWM"
+	default y
+	help
+	  not standard pwm driver 
+
 config DEVMEM
 	bool "Memory device driver"
 	default y
