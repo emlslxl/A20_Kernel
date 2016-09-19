@@ -28,6 +28,7 @@
 #define CMD_DIN_KEY			(CMD_CTRL_BASE+2)	//键盘队列中断状态字，写入无效，长度8bit，由DI的低8bit控制
 
 #define CMD_TEST1			(CMD_CTRL_BASE+0xa)	//测试寄存器，长度8bit
+#define CMD_KEY_VALUE		(CMD_CTRL_BASE+0xb)	//获取按键值
 #define CMD_CHIPID			(CMD_CTRL_BASE+0xf)	//长度8bit
 
 #define CMD_DIN_BASE		0x10			//数据输入基地址，写入无效，每地址长度16bit
@@ -314,6 +315,27 @@ static int get_mcu_ver(struct mcu_data *mcu, unsigned int n)
 
 DEFINE_MCU_VER(0)
 
+/**********************mcu currentKeyValue***************************/
+static int get_mcu_keyValue(struct mcu_data *mcu, unsigned int n)
+{
+	u8 d;
+	d = em6kstm32_spi_read_byte(mcu->spi, CMD_KEY_VALUE);
+	if(d<0){
+		printk("%s: failed to get %d\n", __FUNCTION__, n);
+		return 0;
+	}
+
+	return d;
+}
+
+#define DEFINE_MCU_KEYVALUE(n)	static ssize_t mcu_show_keyValue(struct device *dev, struct device_attribute *attr, char *buf){\
+			struct mcu_data *mcu = dev_get_drvdata(dev);\
+			return sprintf(buf, "%d\n", get_mcu_keyValue(mcu,n));\
+		}\
+	static DEVICE_ATTR(keyValue, 0644,mcu_show_keyValue, NULL);
+
+DEFINE_MCU_KEYVALUE(0)
+
 /**********************mcu pwm out***************************/
 static int get_mcu_aout(struct mcu_data *mcu, unsigned int n)
 {
@@ -387,6 +409,7 @@ static const struct attribute *mcu_attrs[] = {
 	&dev_attr_DIN1.attr,
 	
 	&dev_attr_ver.attr,
+	&dev_attr_keyValue.attr,
 	&dev_attr_buzzer.attr,
 
 	&dev_attr_power.attr,
