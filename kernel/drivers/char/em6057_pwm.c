@@ -26,7 +26,7 @@ MODULE_LICENSE("GPL");
 #define CHARDEVICEDRIVER_MAJOR 100
 #define CHARDEVICEDRIVER_MINOR 0
 #define CHARDEVICEDRIVER_COUNT 1
-#define CHARDEVICEDRIVER_NAME "em6057_pwm1"
+#define CHARDEVICEDRIVER_NAME "em6057_pwm"
 
 struct chardevicedriver_cdev
 {
@@ -46,6 +46,8 @@ static struct class *dev_class = NULL;
 
 #define GPIO_PWM_PORT	9 //port_I -> 9
 #define GPIO_PWM_NUM	3 //PI03
+#define PWM1_FREQ	20000
+#define ENTIRE_CYS	(24000000/PWM1_FREQ)
 
 static void *v_gpio_base_addr = NULL;
 
@@ -89,7 +91,7 @@ static void pwm_set_duty_ns(__u32 duty_ns)
 	__u32 active_cycle = 0;
 	__u32 tmp;
 
-	active_cycle = (duty_ns * 2400 + (100 / 2)) / 100;
+	active_cycle = (duty_ns * ENTIRE_CYS + (100 / 2)) / 100;
 
 	tmp = pwm_read_reg(0x208);
 
@@ -109,10 +111,8 @@ static void pwm1_enable(__u32 b_en)
 	pwm_write_reg(0x200, tmp);
 }
 
-static int chardevicedriver_open(struct inode *inode, struct file *filp)
+static void pwm1_init(void)
 {
-	struct chardevicedriver_cdev *pcdevp = NULL;
-
 	__u32 tmp;
 
 	volatile __u32  *tmp_group_func_addr = NULL;
@@ -145,7 +145,7 @@ static int chardevicedriver_open(struct inode *inode, struct file *filp)
 	tmp_group_func_data |= 2 << 12;
 	*tmp_group_func_addr = tmp_group_func_data;	//config pwm function
 
-	pwm_write_reg(0x208, ((2400 - 1) << 16) | 1800);
+	pwm_write_reg(0x208, ((ENTIRE_CYS - 1) << 16) | (uint32_t)(ENTIRE_CYS/4*3));
 	tmp = pwm_read_reg(0x208);
 
 	tmp = pwm_read_reg(0x200) & 0xff807fff;
@@ -153,6 +153,11 @@ static int chardevicedriver_open(struct inode *inode, struct file *filp)
 	pwm_write_reg(0x200, tmp);
 
 	pwm1_enable(1);
+}
+
+static int chardevicedriver_open(struct inode *inode, struct file *filp)
+{
+	struct chardevicedriver_cdev *pcdevp = NULL;
 
 	//设备号inode->i_rdev,inode->i_cdev指向字符驱动对象cdev
 	pcdevp = container_of(inode->i_cdev, struct chardevicedriver_cdev, cdev);
@@ -189,13 +194,6 @@ static long chardevicedriver_ioctl(struct file *filp,unsigned int cmd,
 static int chardevicedriver_release(struct inode *inode, struct file *filp)
 {
 	printk("lxl chardevicedriver_relaease!\n");
-
-	iounmap(v_pwm_base_addr);
-	release_mem_region(PY_PWM_REGS_BASE_ADDR,0x20C);
-
-	iounmap(v_gpio_base_addr);
-	release_mem_region(PY_GPIO_REGS_BASE_ADDR,0x218);
-
 	return 0;
 }
 
@@ -221,23 +219,23 @@ void chardevicedriver_cdev_add(struct chardevicedriver_cdev *pcdevp, int index)
 
 	/*创建设备节点文件/dev/xxxx*/
 	pcdevp->dev_device =device_create(dev_class, NULL, dev, NULL, 
-				 					 "em6057_pwm1");
+				 					 "em6057_pwm");
 }
 
 static int __init chardevicedriver_init(void)
 {
 	int ret = 0;
 	int i = 0;
-	/*静态分配*/
+
 	if(chardevicedriver_major)
 	{
 		dev = MKDEV(CHARDEVICEDRIVER_MAJOR, 
 					  CHARDEVICEDRIVER_MINOR);
 		/*
-		  *注册设备号
-		  *from,起始设备号
-		  *count,连续注册的设备号的个数
-		  *name,注册设备的名称
+		  *注册设备???
+		  *from,起始设备???
+		  *count,连续注册的设备号的个???
+		  *name,注册设备的名???
 		  */
 		ret = register_chrdev_region(dev, CHARDEVICEDRIVER_COUNT,
 							  CHARDEVICEDRIVER_NAME);
@@ -286,6 +284,8 @@ static int __init chardevicedriver_init(void)
 		chardevicedriver_cdev_add(&(chardevicedriver_cdevp[i]), i);
 	}
 
+	pwm1_init();
+
 	return 0;
 failure_class_create:
 	kfree(chardevicedriver_cdevp);
@@ -298,6 +298,13 @@ failure_register_cdev:
 static void __exit chardevicedriver_exit(void)
 {
 	int i = 0;
+	
+	iounmap(v_pwm_base_addr);
+	release_mem_region(PY_PWM_REGS_BASE_ADDR,0x20C);
+
+	iounmap(v_gpio_base_addr);
+	release_mem_region(PY_GPIO_REGS_BASE_ADDR,0x218);
+
 	for(i=0; i<CHARDEVICEDRIVER_COUNT; i++)
 	{
 		/*删除设备节点文件/dev/xxx*/

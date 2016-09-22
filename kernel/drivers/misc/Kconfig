@@ -118,6 +118,15 @@ config SUNXI_PWM
 	  module will be called pwm-sunxi.  This driver supports 
 	  a sysfs interface at /sys/class/pwm-sunxi as well as the 
 	  kernel pwm interface. 
+config EM6057_PWM 
+	tristate "em6057 PWM Driver" 
+	help 
+	  Say Y here if you want Hardware PWM Support 
+ 
+	  To compile this driver as a module, choose M here: the 
+	  module will be called pwm-sunxi.  This driver supports 
+	  a sysfs interface at /sys/class/misc/em6057_pwm as well as the 
+	  kernel pwm interface. 
  
 
 config AB8500_PWM
