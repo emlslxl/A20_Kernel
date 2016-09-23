@@ -2,7 +2,7 @@
 * @Author: emlslxl
 * @Date:   2016-09-07 13:59:00
 * @Last Modified by:   emlslxl
-* @Last Modified time: 2016-09-20 16:01:07
+* @Last Modified time: 2016-09-23 13:54:32
 */
 
 #include <linux/kobject.h>
@@ -67,16 +67,32 @@ static __s32 pwm_write_reg(__u32 offset, __u32 value)
   return 0;
 }
 
-static void pwm_set_duty_ns(__u32 duty_ns)
+static void pwm_set_duty(__u32 duty)
 {
   __u32 active_cycle = 0;
+  __u32 entire_cycle = 0;
   __u32 tmp;
+  
+  tmp = pwm_read_reg(0x208);
+  entire_cycle = tmp >> 16;
 
-  active_cycle = (duty_ns * 2400 + (100 / 2)) / 100;
+  active_cycle = ((duty > 100 ? 100 : duty) * entire_cycle + (100 / 2)) / 100;
 
   tmp = pwm_read_reg(0x208);
 
   pwm_write_reg(0x208, (tmp & 0xffff0000) | active_cycle);
+}
+
+static void pwm_set_freq_hz(__u32 freq_hz)
+{
+  __u32 entire_cycle = 0;
+  __u32 tmp;
+
+  entire_cycle = 24000000/(freq_hz > 24000000 ? 24000000 : freq_hz);
+
+  tmp = pwm_read_reg(0x208);
+
+  pwm_write_reg(0x208, (tmp & 0x0000ffff) | entire_cycle << 16);
 }
 
 static void pwm1_enable(__u32 b_en)
@@ -123,7 +139,7 @@ static int pwm_init(void)
   tmp_group_func_data |= 2 << 12;
   *tmp_group_func_addr = tmp_group_func_data; //config pwm function
 
-  pwm_write_reg(0x208, ((2400 - 1) << 16) | 1800);
+  pwm_write_reg(0x208, ((1200 - 1) << 16) | 900); //freq=20KHz
   tmp = pwm_read_reg(0x208);
 
   tmp = pwm_read_reg(0x200) & 0xff807fff;
@@ -135,15 +151,15 @@ static int pwm_init(void)
   return 0;
 }
 /***********************************************************/
-#if 0
+
 static int em6057_pwm_open(struct inode *inode, struct file *file) {
-  printk("lxl em6057_pwm_open\n");
+  // printk("lxl em6057_pwm_open\n");
   return 0;
 }
 
 ssize_t em6057_pwm_write(struct file *file, const char __user *buf, 
         size_t size, loff_t *offset) {
-  printk("lxl em6057_pwm_write\n");
+  // printk("lxl em6057_pwm_write\n");
   return 0;
 }
 
@@ -151,15 +167,15 @@ static long em6057_pwm_ioctl(struct file *filp,unsigned int cmd,
         unsigned long data)
 {
   __u32 tmp = 0;
-  printk("lxl em6057_pwm_ioctl\n");
-  pwm_set_duty_ns(cmd > 100 ? 100 : cmd);
+  // printk("lxl em6057_pwm_ioctl\n");
+  pwm_set_duty(cmd);
   tmp = pwm_read_reg(0x208);
 
   return 0;
 }
 
 static int em6057_pwm_release(struct inode *inode, struct file *file) {
-  printk("lxl em6057_pwm_release\n");
+  // printk("lxl em6057_pwm_release\n");
   return 0;
 }
 
@@ -169,16 +185,19 @@ static const struct file_operations em6057_pwm_fops = {
   .unlocked_ioctl = em6057_pwm_ioctl,
   .release  = em6057_pwm_release
 };
-#endif
 
-static struct device_attribute *pattr;
+
 static struct miscdevice em6057_pwm_dev = {    //创建杂项设备
   .minor =  255,
   .name =    "em6057_pwm",
-//  .fops =    &em6057_pwm_fops
+  .fops =    &em6057_pwm_fops
 };
 
-static struct attribute *em6057_pwm_attributes[2] = {
+/****************************************************************************/
+
+static struct device_attribute *pattr;
+
+static struct attribute *em6057_pwm_attributes[4] = {
   NULL
 };
 
@@ -187,8 +206,7 @@ static struct attribute_group em6057_pwm_attribute_group = {
   .attrs = em6057_pwm_attributes,
 };
 
-
-static ssize_t em6057_pwm_store(struct device *dev,
+static ssize_t em6057_pwm_duty_store(struct device *dev,
         struct device_attribute *attr,
         const char *buf, size_t count)
 {
@@ -199,22 +217,22 @@ static ssize_t em6057_pwm_store(struct device *dev,
   if (error)
     return error;
 
-  printk("lxl em6057_pwm_store\n");
-  pwm_set_duty_ns(data > 100 ? 100 : data);
+  // printk("lxl em6057_pwm_store\n");
+  pwm_set_duty(data);
   
 
   return count;
 }
 
-static ssize_t em6057_pwm_show(struct device *dev,
+static ssize_t em6057_pwm_duty_show(struct device *dev,
     struct device_attribute *attr, char *buf)
 {
   unsigned int data,tmp;
 
-  printk("lxl em6057_pwm_show\n");
+  // printk("lxl em6057_pwm_show\n");
 
   tmp = pwm_read_reg(0x208);
-  data = (tmp&0xffff)/24;
+  data = (tmp&0xffff)*100/(tmp >> 16);
 
   if(data != EGPIO_FAIL) {
     return sprintf(buf, "%d\n", data);
@@ -222,6 +240,41 @@ static ssize_t em6057_pwm_show(struct device *dev,
     return sprintf(buf, "error\n");
   }
 }
+
+static ssize_t em6057_pwm_freq_store(struct device *dev,
+        struct device_attribute *attr,
+        const char *buf, size_t count)
+{
+  unsigned long data;
+  int error;
+
+  error = strict_strtoul(buf, 10, &data);
+  if (error)
+    return error;
+
+  // printk("lxl em6057_pwm_freq_store\n");
+  pwm_set_freq_hz(data);
+  
+  return count;
+}
+
+static ssize_t em6057_pwm_freq_show(struct device *dev,
+    struct device_attribute *attr, char *buf)
+{
+  unsigned int data,tmp;
+
+  // printk("lxl em6057_pwm_freq_show\n");
+
+  tmp = pwm_read_reg(0x208);
+  data = 24000000/(tmp >> 16);
+
+  if(data != EGPIO_FAIL) {
+    return sprintf(buf, "%d\n", data);
+  } else {
+    return sprintf(buf, "error\n");
+  }
+}
+
 
 static int __init em6057_pwm_init(void)
 {
@@ -236,16 +289,25 @@ static int __init em6057_pwm_init(void)
     goto exit;
   }
 
-  pattr = kzalloc(sizeof(struct device_attribute), GFP_KERNEL);
+  pattr = kzalloc(sizeof(struct device_attribute)*2, GFP_KERNEL);
   attr_i = pattr;
 
   /* Add attributes to the group */
   sysfs_attr_init(&attr_i->attr);
   attr_i->attr.name = "duty";
   attr_i->attr.mode = 0644;
-  attr_i->show = em6057_pwm_show;
-  attr_i->store = em6057_pwm_store;
+  attr_i->show = em6057_pwm_duty_show;
+  attr_i->store = em6057_pwm_duty_store;
   em6057_pwm_attributes[0] = &attr_i->attr;
+
+  attr_i++;
+
+  sysfs_attr_init(&attr_i->attr); 
+  attr_i->attr.name = "freq";
+  attr_i->attr.mode = 0644;
+  attr_i->show = em6057_pwm_freq_show;
+  attr_i->store = em6057_pwm_freq_store;
+  em6057_pwm_attributes[1] = &attr_i->attr;
   
   sysfs_create_group(&em6057_pwm_dev.this_device->kobj,
              &em6057_pwm_attribute_group);
@@ -268,7 +330,7 @@ static void em6057_pwm_exit(void)
   release_mem_region(PY_GPIO_REGS_BASE_ADDR,0x218);
 }
 
-module_init(em6057_pwm_init);
+late_initcall(em6057_pwm_init);
 module_exit(em6057_pwm_exit);
 
 MODULE_DESCRIPTION("a simple pwm driver");
