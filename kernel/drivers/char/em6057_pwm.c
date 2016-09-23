@@ -120,7 +120,7 @@ static void pwm1_init(void)
 	__u32 tmp_group_func_data = 0;
 
 	
-	printk("lxl chardevicedriver_open!\n");
+	printk("lxl pwm1_init!\n");
 
 	if(!request_mem_region(PY_GPIO_REGS_BASE_ADDR,0x218,"pwm1_gpio"))
 	{
@@ -163,6 +163,7 @@ static int chardevicedriver_open(struct inode *inode, struct file *filp)
 	pcdevp = container_of(inode->i_cdev, struct chardevicedriver_cdev, cdev);
 
 	filp->private_data = pcdevp;
+//	printk("lxl chardevicedriver_open!\n");
 	
 	return 0;
 }
@@ -170,14 +171,14 @@ static int chardevicedriver_open(struct inode *inode, struct file *filp)
 static ssize_t chardevicedriver_read(struct file *filp, char __user *buf, 
 							   size_t count, loff_t *offset)
 {
-	printk("lxl chardevicedriver_read!\n");
+//	printk("lxl chardevicedriver_read!\n");
 	
 	return 0;
 }
 static ssize_t chardevicedriver_write(struct file *filp, const char __user *buf,
 							 size_t count, loff_t *offset)
 {
-	printk("lxl chardevicedriver_write!\n");
+//	printk("lxl chardevicedriver_write!\n");
 
 	return 0;
 }
@@ -185,7 +186,7 @@ static long chardevicedriver_ioctl(struct file *filp,unsigned int cmd,
 				unsigned long data)
 {
 	__u32 tmp = 0;
-	printk("lxl chardevicedriver_ioctl\n");
+//	printk("lxl chardevicedriver_ioctl\n");
 	pwm_set_duty_ns(cmd > 100 ? 100 : cmd);
 	tmp = pwm_read_reg(0x208);
 
@@ -193,7 +194,7 @@ static long chardevicedriver_ioctl(struct file *filp,unsigned int cmd,
 }
 static int chardevicedriver_release(struct inode *inode, struct file *filp)
 {
-	printk("lxl chardevicedriver_relaease!\n");
+//	printk("lxl chardevicedriver_relaease!\n");
 	return 0;
 }
 
@@ -254,7 +255,7 @@ static int __init chardevicedriver_init(void)
 	}
 	/*获取申请到的主设备号*/
 	chardevicedriver_major = MAJOR(dev);
-	printk("lxl alloc dev major = %d\n", chardevicedriver_major);
+//	printk("lxl alloc dev major = %d\n", chardevicedriver_major);
 
 	/*申请关于cdev的空间*/
 	chardevicedriver_cdevp = kmalloc(sizeof(struct chardevicedriver_cdev)*CHARDEVICEDRIVER_COUNT,
@@ -324,7 +325,8 @@ static void __exit chardevicedriver_exit(void)
 				  chardevicedriver_minor);
 	unregister_chrdev_region(dev, CHARDEVICEDRIVER_COUNT);
 }
-module_init(chardevicedriver_init);
+//module_init(chardevicedriver_init);
+late_initcall(chardevicedriver_init);
 module_exit(chardevicedriver_exit);
 
 
